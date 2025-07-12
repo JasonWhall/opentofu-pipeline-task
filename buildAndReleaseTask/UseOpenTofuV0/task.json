@@ -1,0 +1,39 @@
+{
+    "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
+    "id": "b0daddf0-6c15-4db2-899d-1fd84d2c1833",
+    "name": "UseOpenTofu",
+    "friendlyName": "OpenTofu Installer Task",
+    "description": "Install the OpenTofu Cli.",
+    "helpMarkDown": "",
+    "category": "Utility",
+    "author": "Jason Whalley",   
+    "version": {
+        "Major": 0,
+        "Minor": 1,
+        "Patch": 0
+    },
+    "instanceNameFormat": "Install OpenTofu Cli",
+    "inputs": [
+        {
+            "name": "version",
+            "type": "string",
+            "label": "Version",
+            "defaultValue": "latest",
+            "required": true,
+            "helpMarkDown": "The version of OpenTofu Cli to install. Defaults to latest"
+        }
+    ],
+    "execution": {
+        "Node20_1": {
+            "target": "index.js"
+        }
+    },
+    "messages": {
+        "Unsupported_OS": "The current operating system: %s is not supported by this task. Supported OS: Windows, Linux, macOS.",
+        "Unsupported_Arch": "The current architecture: %s is not supported by this task.",
+        "Error_ToolNotFound": "The OpenTofu Cli tool was not found at the expected path: %s. Please check the installation.",
+        "Error_VersionNotFound": "The requested version of OpenTofu Cli: %s was not found. Please check the version number.",
+        "Debug_VersionRequested": "Version requested: %s",
+        "Debug_InstallingVersion": "Installing OpenTofu Cli version: %s"
+    }
+}

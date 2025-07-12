@@ -1,0 +1,53 @@
+{
+    "manifestVersion": 1,
+    "id": "opentofu-installer-task",
+    "name": "OpenTofu Installer Task",
+    "version": "0.1.0",
+    "public": true,
+    "publisher": "jasonwhalley",
+    "targets": [
+        {
+            "id": "Microsoft.VisualStudio.Services"
+        }
+    ],
+    "description": "Task for Installing OpenTofu.",
+    "categories": [
+        "Azure Pipelines"
+    ],
+    "icons": {
+        "default": "images/extension-icon.png"
+    },
+    "files": [
+        {
+            "path": "buildAndReleaseTask"
+        }
+    ],
+    "contributions": [
+        {
+            "id": "opentofu-installer-task",
+            "type": "ms.vss-distributed-task.task",
+            "targets": [
+                "ms.vss-distributed-task.tasks"
+            ],
+            "properties": {
+                "name": "buildAndReleaseTask/UseOpenTofuV0"
+            }
+        }
+    ],
+    "branding": {
+        "color": "rgb(13, 26, 43)",
+        "theme": "dark"
+    },
+    "repository": {
+        "type": "git",
+        "uri": "https://github.com/JasonWhall/opentofu-pipeline-task"
+    },
+    "content": {
+        "details": {
+            "path": "docs.md"
+        },
+        "license": {
+            "path": "LICENSE"
+        }
+    }
+}

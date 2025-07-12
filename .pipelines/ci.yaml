@@ -1,0 +1,200 @@
+name: 0.1$(rev:.r)
+
+trigger:
+  branches:
+    include:
+    - main
+  batch: true
+
+pr:
+  branches:
+    include:
+      - main
+  drafts: false
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  publisher: 'jasonwhalley'
+  extensionName: 'OpenTofu Installer Task'
+  extensionId: 'opentofu-installer-task'
+  extensionVersion: '$(Build.BuildNumber)'
+  nodeVersion: '24.x'
+
+stages:
+- stage: build
+  displayName: Build
+  jobs:
+  - job: build
+    displayName: Build
+    steps:
+    - checkout: self
+
+    - task: UseNode@1
+      displayName: Install node
+      inputs:
+        version: $(nodeVersion)
+
+    - script: |
+        npm install
+      displayName: Install dependencies
+      workingDirectory: $(Build.SourcesDirectory)/buildAndReleaseTask/UseOpenTofuV0
+
+    - script: |
+        npm run build
+      displayName: Build
+      workingDirectory: $(Build.SourcesDirectory)/buildAndReleaseTask/UseOpenTofuV0
+
+
+    - task: TfxInstaller@5
+      displayName: Install Tfx
+      inputs:
+        version: 0.x
+        checkLatest: true
+
+    - task: PackageAzureDevOpsExtension@5
+      displayName: Package Extension
+      inputs:
+        rootFolder: $(Build.SourcesDirectory)
+        outputPath: $(Build.ArtifactStagingDirectory)\opentofu-pipeline-task.vsix
+        publisherId: $(publisher)
+        extensionId: $(extensionId)
+        extensionTag: '-build'
+        extensionName: $(extensionName)
+        extensionVersion: $(extensionVersion)
+        updateTasksVersion: true
+        updateTasksVersionType: patch
+        extensionVisibility: private
+
+    - task: PackageAzureDevOpsExtension@5
+      displayName: Package Private'
+      inputs:
+        rootFolder: $(Build.SourcesDirectory)
+        outputPath: $(Build.ArtifactStagingDirectory)\opentofu-pipeline-task-private.vsix
+        publisherId: $(publisher)
+        extensionName: $(extensionName)
+        extensionId: $(extensionId)
+        extensionVersion: $(extensionVersion)
+        extensionTag: '-dev'
+        extensionVisibility: 'private'
+
+    - task: PackageAzureDevOpsExtension@5
+      displayName: Package Public
+      inputs:
+        rootFolder: $(Build.SourcesDirectory)
+        outputPath: $(Build.ArtifactStagingDirectory)\opentofu-pipeline-task-public.vsix
+        publisherId: $(publisher)
+        extensionName: $(extensionName)
+        extensionId: $(extensionId)
+        extensionVersion: $(extensionVersion)
+        extensionVisibility: public
+
+    - publish: $(Build.ArtifactStagingDirectory)
+      artifact: vsix
+      displayName: 'Publish Artifacts'
+
+- stage: PublishDev
+  displayName: Release Private
+  dependsOn: build
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  jobs:
+  - deployment: private
+    displayName: Deploy Private
+    environment: opentofu-dev
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: vsix
+            patterns: "**/*-private.vsix"
+
+          - task: NodeTool@0
+            displayName: Install Node
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - task: TfxInstaller@5
+            displayName: Install Tfx
+            inputs:
+              version: 0.x
+              checkLatest: true
+
+          - task: PublishAzureDevOpsExtension@5
+            name: publishDev
+            displayName: Publish Private Extension
+            inputs:
+              connectTo: VsTeam
+              connectedServiceName: MarketplacePublishing
+              fileType: vsix
+              vsixFile: $(Pipeline.Workspace)/vsix/opentofu-pipeline-task-private.vsix
+              noWaitValidation: true
+
+          - task: IsAzureDevOpsExtensionValid@5
+            displayName: Validate
+            inputs:
+              connectTo: VsTeam
+              connectedServiceName: MarketplacePublishing
+              method: vsix
+              vsixFile: $(publishDev.Extension.OutputPath)
+
+- stage: PublishProd
+  displayName: Publish Public
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  dependsOn: PublishDev
+  jobs:
+  - deployment:
+    environment: opentofu-prod
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: vsix
+            patterns: "**/*-public.vsix"
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: $(nodeVersion)
+            displayName: Install Node
+
+          - task: TfxInstaller@5
+            displayName: Install Tfx
+            inputs:
+              version: 0.x
+              checkLatest: true
+
+          - task: PublishAzureDevOpsExtension@5
+            name: publishProd
+            displayName: Publish the public extension
+            inputs:
+              connectTo: VsTeam
+              connectedServiceName: MarketplacePublishing
+              fileType: vsix
+              vsixFile: $(Pipeline.Workspace)/vsix/opentofu-pipeline-task-public.vsix
+              noWaitValidation: true
+
+          - task: IsAzureDevOpsExtensionValid@5
+            displayName: Validate
+            inputs:
+              connectTo: VsTeam
+              connectedServiceName: MarketplacePublishing
+              method: vsix
+              vsixFile: $(publishProd.Extension.OutputPath)
+
+          - task: GitHubRelease@1
+            displayName: Publish Release
+            inputs:
+              gitHubConnection: jasonwhall
+              repositoryName: $(Build.Repository.Name)
+              action: create
+              target: $(Build.SourceVersion)
+              tagSource: userSpecifiedTag
+              tag: v$(Build.BuildNumber)
+              title: v$(Build.BuildNumber)
+              releaseNotesSource: inline
+              assets: $(publishProd.Extension.OutputPath)*
+              changeLogCompareToRelease: lastFullRelease
+              changeLogType: issueBased
+              changeLogLabels: '[{ "state" : "closed" }]'

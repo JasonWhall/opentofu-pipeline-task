@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug UseOpenTofuV0",
+            "program": "${workspaceFolder}/buildAndReleaseTask/UseOpenTofuV0/index.js",
+            "cwd": "${workspaceFolder}/buildAndReleaseTask/UseOpenTofuV0",
+            "outFiles": [
+                "${workspaceFolder}/buildAndReleaseTask/UseOpenTofuV0/**/*.js"
+            ],
+            "env": {
+                "AGENT_TOOLSDIRECTORY": "${workspaceFolder}/tools",
+                "AGENT_TEMPDIRECTORY": "${workspaceFolder}/temp",
+                "SYSTEM_DEBUG": "true",
+                "INPUT_VERSION": "1.1.1"
+            },
+            "sourceMaps": true,
+            "skipFiles": ["**/node_modules/**"],
+            "preLaunchTask": "tsc: build",
+            "experimentalNetworking": "off",
+            "console": "integratedTerminal",
+        }
+    ]
+}
