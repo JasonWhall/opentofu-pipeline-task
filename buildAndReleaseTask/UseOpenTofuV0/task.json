@@ -6,7 +6,7 @@
     "description": "Install the OpenTofu Cli.",
     "helpMarkDown": "",
     "category": "Utility",
-    "author": "Jason Whalley",   
+    "author": "Jason Whalley",
     "version": {
         "Major": 0,
         "Minor": 1,
@@ -21,6 +21,14 @@
             "defaultValue": "latest",
             "required": true,
             "helpMarkDown": "The version of OpenTofu Cli to install. Defaults to latest"
+        },
+        {
+            "name": "gitHubConnection",
+            "type": "connectedService:github:OAuth,OAuth2,PersonalAccessToken,InstallationToken,Token",
+            "label": "GitHub Connection",
+            "defaultValue": "",
+            "required": false,
+            "helpMarkDown": "A GitHub connection can be provided to avoid rate limiting issues when downloading OpenTofu Cli. If not provided, the task will use unauthenticated requests."
         }
     ],
     "execution": {
@@ -33,7 +41,9 @@
         "Unsupported_Arch": "The current architecture: %s is not supported by this task.",
         "Error_ToolNotFound": "The OpenTofu Cli tool was not found at the expected path: %s. Please check the installation.",
         "Error_VersionNotFound": "The requested version of OpenTofu Cli: %s was not found. Please check the version number.",
+        "Error_InvalidGitHubConnection": "The GitHub connection scheme is invalid or inaccessible: %s.",
         "Debug_VersionRequested": "Version requested: %s",
-        "Debug_InstallingVersion": "Installing OpenTofu Cli version: %s"
+        "Debug_InstallingVersion": "Installing OpenTofu Cli version: %s",
+        "Debug_NoGitHubConnection": "No GitHub connection provided, using unauthenticated requests."
     }
 }

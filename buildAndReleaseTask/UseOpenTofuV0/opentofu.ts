@@ -38,7 +38,7 @@ export async function installOpenTofu(version: string): Promise<string> {
     tl.debug(tl.loc("Debug_InstallingVersion", version));
 
     let additionalHeaders: { [key: string]: string } = {};
-    const ghToken = tl.getVariable("GITHUB_TOKEN");
+    const ghToken = tl.getVariable("GITHUB_TOKEN") || utils.getGithubEndPointToken();
 
     if (ghToken) {
         additionalHeaders["Authorization"] = `Bearer ${ghToken}`;
@@ -59,7 +59,7 @@ export async function installOpenTofu(version: string): Promise<string> {
     return cachedToolPath;
 }
 
-export async function VerifyInstall(toolPath: string): Promise<void> {
+export async function verifyInstall(toolPath: string): Promise<void> {
     const tofuPath = path.join(toolPath, `tofu${utils.getPlatform().startsWith("win") ? ".exe" : ""}`);
 
     if (!tl.stats(tofuPath).isFile()) {

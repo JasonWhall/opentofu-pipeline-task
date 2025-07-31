@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as tl from 'azure-pipelines-task-lib/task';
-import { getOpenTofuVersion, installOpenTofu, VerifyInstall } from './opentofu';
+import { getOpenTofuVersion, installOpenTofu, verifyInstall } from './opentofu';
 
 async function run() {
     tl.setResourcePath(path.join(__dirname, "task.json"));
@@ -8,7 +8,7 @@ async function run() {
     try {
         const version = await getOpenTofuVersion();
         var toolPath = await installOpenTofu(version);
-        await VerifyInstall(toolPath);
+        await verifyInstall(toolPath);
     }
     catch (error) {
         console.error(error);

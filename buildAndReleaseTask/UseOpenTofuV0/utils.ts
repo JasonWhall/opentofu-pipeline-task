@@ -13,7 +13,7 @@ export function getPlatform(): string {
             return `darwin`;
         default:
             throw new Error(tl.loc("Unsupported_OS"));
-   }
+    }
 }
 
 export function getArch(): string {
@@ -29,4 +29,28 @@ export function getArch(): string {
         default:
             throw new Error(tl.loc("Unsupported_Arch", arch));
     }
+}
+
+export function getGithubEndPointToken(): string | undefined {
+    const githubEndpoint = tl.getInput("gitHubConnection", false);
+
+    if (!githubEndpoint) {
+        tl.debug(tl.loc("Debug_NoGitHubConnection"));
+        return undefined;
+    }
+
+    const githubEndpointObject = tl.getEndpointAuthorization(githubEndpoint, true);
+    let githubEndpointToken: string | undefined;
+
+    switch (githubEndpointObject?.scheme) {
+        case 'PersonalAccessToken':
+        case 'Token':
+        case 'OAuth':
+            githubEndpointToken = githubEndpointObject.parameters.accessToken;
+            break;
+        default:
+            throw new Error(tl.loc("Error_InvalidGitHubConnection", githubEndpointObject?.scheme));
+    }
+
+    return githubEndpointToken;
 }

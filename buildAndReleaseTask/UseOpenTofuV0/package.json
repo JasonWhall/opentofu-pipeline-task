@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc"
-    },
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JasonWhall/opentofu-pipeline-task.git"
