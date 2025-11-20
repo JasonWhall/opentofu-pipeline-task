@@ -1,7 +1,12 @@
 import * as tl from "azure-pipelines-task-lib/task";
 import os from "os";
 
-export function getPlatform(): string {
+/**
+ * 
+ * @returns The platform string used in OpenTofu download URLs.
+ * @throws Error if the OS is unsupported.
+ */
+export const getPlatform = (): string => {
     const platform = tl.getPlatform();
 
     switch (platform) {
@@ -16,7 +21,12 @@ export function getPlatform(): string {
    }
 }
 
-export function getArch(): string {
+/**
+ * 
+ * @returns The architecture string used in OpenTofu download URLs.
+ * @throws Error if the architecture is unsupported.
+ */
+export const getArch = (): string => {
     const arch = os.arch();
 
     switch (arch) {
@@ -30,3 +40,15 @@ export function getArch(): string {
             throw new Error(tl.loc("Unsupported_Arch", arch));
     }
 }
+
+/**
+ * 
+ * @returns The appropriate zip file extension for the current platform.
+ */
+export const getZipExtension = (): string => getPlatform().startsWith("win") ? "zip" : "tar.gz";
+
+/** 
+ * 
+ * @returns The appropriate executable file extension for the current platform.
+ */
+export const getFileExtension = (): string => getPlatform().startsWith("win") ? ".exe" : "";

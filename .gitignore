@@ -2,6 +2,10 @@ node_modules
 temp/*
 tools/*
 buildAndReleaseTask/**/*.js
+!jest.config.js
+*.map
 .taskkey
 *.vsix
-*.map
+coverage
+.nyc_output
+junit.xml

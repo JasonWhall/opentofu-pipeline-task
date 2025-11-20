@@ -28,6 +28,7 @@
 ## Testing
 - Write unit tests for new features and bug fixes.
 - Use mocks/stubs for external dependencies in tests.
+- Use jest as the preferred testing framework.
 
 ## Domain Knowledge (OpenTofu Pipeline Task)
 - Follow best practices for Azure DevOps pipeline tasks.
