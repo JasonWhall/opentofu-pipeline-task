@@ -46,6 +46,16 @@ stages:
       displayName: Build
       workingDirectory: $(Build.SourcesDirectory)/buildAndReleaseTask/UseOpenTofuV0
 
+    - script: |
+        npm run test:coverage
+      displayName: Run Tests with Coverage
+      workingDirectory: $(Build.SourcesDirectory)/buildAndReleaseTask/UseOpenTofuV0
+
+    - task: PublishCodeCoverageResults@2
+      displayName: 'Publish Code Coverage Results'
+      inputs:
+        summaryFileLocation: $(Build.SourcesDirectory)/buildAndReleaseTask/UseOpenTofuV0/coverage/cobertura-coverage.xml
+        failIfCoverageEmpty: true
 
     - task: TfxInstaller@5
       displayName: Install Tfx

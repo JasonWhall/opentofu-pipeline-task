@@ -4,7 +4,8 @@
         {
             "label": "tsc: build",
             "type": "shell",
-            "command": "npx tsc -p buildAndReleaseTask/UseOpenTofuV0/tsconfig.json",
+            "command": "npm run build",
+            "options": {"cwd": "${workspaceFolder}/buildAndReleaseTask/UseOpenTofuV0"},
             "group": {
                 "kind": "build",
                 "isDefault": true

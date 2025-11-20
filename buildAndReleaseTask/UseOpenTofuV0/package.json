@@ -4,7 +4,10 @@
   "description": "Installs the OpenTofu Cli",
   "main": "index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
     },
   "repository": {
     "type": "git",
@@ -21,10 +24,13 @@
   "homepage": "https://github.com/JasonWhall/opentofu-pipeline-task#readme",
   "dependencies": {
     "azure-pipelines-task-lib": "^5.2.1",
-    "azure-pipelines-tool-lib": "^2.0.8"
+    "azure-pipelines-tool-lib": "^2.0.10"
   },
   "devDependencies": {
-    "@types/node": "^24.0.10",
-    "typescript": "^5.8.3"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.10.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.9.3"
   }
 }

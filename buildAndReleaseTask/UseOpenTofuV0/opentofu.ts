@@ -9,26 +9,25 @@ interface VersionInfo {
     files: string[];
 }
 
-export async function getOpenTofuVersion(): Promise<string> {
-    let version = tl.getInput("version") || "latest";
+/**
+ * Gets the appropriate OpenTofu version based on user input.
+ * @param version - The requested OpenTofu version (e.g., "latest" or "1.2.3").
+ * @returns The resolved OpenTofu version string.
+ */
+export const getOpenTofuVersion = async (version: string): Promise<string> => {
     tl.debug(tl.loc("Debug_VersionRequested", version));
 
-    const response = await fetch("https://get.opentofu.org/tofu/api.json");
-    const data = await response.json();
-    const versions = data.versions.map((v: VersionInfo) => v.id);
-
-    const match = version == "latest" 
-        ? tr.evaluateVersions(versions, ">1.0.0")
-        : tr.evaluateVersions(versions, version);
-
-    if (!match) {
-        throw new Error(tl.loc("Error_VersionNotFound", version));
-    }
-
-    return match;
+    const versionInfo = await getVersionInfo("https://get.opentofu.org/tofu/api.json");
+    const ids = versionInfo.map(v => v.id);
+    return getMatchingVersion(ids, version);
 }
 
-export async function installOpenTofu(version: string): Promise<string> {
+/**
+ * Installs the specified version of OpenTofu.
+ * @param version - The OpenTofu version to install.
+ * @returns The path where OpenTofu is installed.
+ */
+export const installOpenTofu = async (version: string): Promise<string> => {
     let cachedToolPath = tr.findLocalTool("opentofu", version);
 
     if (cachedToolPath) {
@@ -37,30 +36,20 @@ export async function installOpenTofu(version: string): Promise<string> {
 
     tl.debug(tl.loc("Debug_InstallingVersion", version));
 
-    let additionalHeaders: { [key: string]: string } = {};
-    const ghToken = tl.getVariable("GITHUB_TOKEN");
+    const downloadUrl = getDownloadUrl(version);
+    const downloadPath = await tr.downloadToolWithRetries(downloadUrl, undefined, undefined, undefined, 5);
+    const extractPath = await extractDownload(downloadPath);
 
-    if (ghToken) {
-        additionalHeaders["Authorization"] = `Bearer ${ghToken}`;
-    }
-
-    const platform = utils.getPlatform();
-    const arch = utils.getArch();
-    const extension = platform.startsWith("win") ? "zip" : "tar.gz";
-
-    const downloadUrl = `https://github.com/opentofu/opentofu/releases/download/v${version}/tofu_${version}_${platform}_${arch}.${extension}`;
-    const downloadPath = await tr.downloadToolWithRetries(downloadUrl, undefined, undefined, additionalHeaders, 5);
-
-    const extractPath = platform.startsWith("win")
-        ? await tr.extractZip(downloadPath)
-        : await tr.extractTar(downloadPath);
-
-    cachedToolPath = await tr.cacheDir(extractPath, "opentofu", version);
-    return cachedToolPath;
+    return await tr.cacheDir(extractPath, "opentofu", version);
 }
 
-export async function VerifyInstall(toolPath: string): Promise<void> {
-    const tofuPath = path.join(toolPath, `tofu${utils.getPlatform().startsWith("win") ? ".exe" : ""}`);
+/**
+ * Verifies that OpenTofu is correctly installed and accessible.
+ * @param toolPath - The path where OpenTofu is installed.
+ * @throws Error if OpenTofu is not found or fails to execute.
+ */
+export const verifyInstall = async (toolPath: string): Promise<void> => {
+    const tofuPath = path.join(toolPath, `tofu${utils.getFileExtension()}`);
 
     if (!tl.stats(tofuPath).isFile()) {
         throw new Error(tl.loc("Error_ToolNotFound", tofuPath));
@@ -76,3 +65,50 @@ export async function VerifyInstall(toolPath: string): Promise<void> {
         .arg("version")
         .execAsync();
 }
+
+const getMatchingVersion = (versions: string[], requestedVersion: string): string => {
+    const match = requestedVersion == "latest" 
+        ? tr.evaluateVersions(versions, ">1.0.0")
+        : tr.evaluateVersions(versions, requestedVersion);
+
+    if (!match) {
+        throw new Error(tl.loc("Error_VersionNotFound", requestedVersion));
+    }
+
+    return match;
+}
+
+const getVersionInfo = async (url: string): Promise<VersionInfo[]> => {
+    let response;
+    try {
+        response = await fetch(url);
+    } catch (error) {
+        const errorMessage = `Failed to fetch OpenTofu version API: ${error instanceof Error ? error.message : String(error)}`;
+        throw new Error(errorMessage);
+    }
+
+    if (!response.ok) {
+        const errorMessage = `OpenTofu version API returned status ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
+    }
+
+    let data;
+    try {
+        data = await response.json();
+    } catch (error) {
+        const errorMessage = `Failed to parse OpenTofu version API response: ${error instanceof Error ? error.message : String(error)}`;
+        throw new Error(errorMessage);
+    }
+
+    return data.versions;
+}
+
+const getDownloadUrl = (version: string) : string => 
+    `https://github.com/opentofu/opentofu/releases/download/` + 
+    `v${version}/tofu_${version}_${utils.getPlatform()}_${utils.getArch()}.${utils.getZipExtension()}`;
+
+const extractDownload = async (downloadPath: string): Promise<string> => 
+    utils.getPlatform().startsWith("win") 
+        ? await tr.extractZip(downloadPath)
+        : await tr.extractTar(downloadPath)
+

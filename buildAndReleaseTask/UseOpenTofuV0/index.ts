@@ -1,18 +1,20 @@
 import * as path from 'path';
 import * as tl from 'azure-pipelines-task-lib/task';
-import { getOpenTofuVersion, installOpenTofu, VerifyInstall } from './opentofu';
+import { getOpenTofuVersion, installOpenTofu, verifyInstall } from './opentofu';
 
 async function run() {
     tl.setResourcePath(path.join(__dirname, "task.json"));
+    const versionInput = tl.getInput("version") || "latest";
 
     try {
-        const version = await getOpenTofuVersion();
-        var toolPath = await installOpenTofu(version);
-        await VerifyInstall(toolPath);
+        const version = await getOpenTofuVersion(versionInput);
+        const toolPath = await installOpenTofu(version);
+        await verifyInstall(toolPath);
     }
     catch (error) {
-        console.error(error);
-        tl.setResult(tl.TaskResult.Failed, `Failed to install OpenTofu: ${error}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        tl.error(errorMessage);
+        tl.setResult(tl.TaskResult.Failed, `Failed to install OpenTofu: ${errorMessage}`);
         return;
     }
 
