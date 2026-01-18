@@ -33,6 +33,7 @@
         "Unsupported_Arch": "The current architecture: %s is not supported by this task.",
         "Error_ToolNotFound": "The OpenTofu Cli tool was not found at the expected path: %s. Please check the installation.",
         "Error_VersionNotFound": "The requested version of OpenTofu Cli: %s was not found. Please check the version number.",
+        "Error_NoMatchingFile": "No matching archive file found for platform: %s and architecture: %s. The version may not be available for this platform.",
         "Debug_VersionRequested": "Version requested: %s",
         "Debug_InstallingVersion": "Installing OpenTofu Cli version: %s"
     }

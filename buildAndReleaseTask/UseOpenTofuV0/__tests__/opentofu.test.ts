@@ -23,10 +23,37 @@ describe('opentofu', () => {
   describe('getOpenTofuVersion', () => {
     const mockVersionData = {
       versions: [
-        { id: '1.10.2', files: [] },
-        { id: '1.10.1', files: [] },
-        { id: '1.9.0', files: [] },
-        { id: '1.8.5', files: [] },
+        { 
+          id: '1.10.2', 
+          files: [
+            'tofu_1.10.2_linux_amd64.tar.gz',
+            'tofu_1.10.2_linux_amd64.zip',
+            'tofu_1.10.2_windows_amd64.zip',
+            'tofu_1.10.2_darwin_amd64.tar.gz'
+          ] 
+        },
+        { 
+          id: '1.10.1', 
+          files: [
+            'tofu_1.10.1_linux_amd64.tar.gz',
+            'tofu_1.10.1_windows_amd64.zip'
+          ] 
+        },
+        { 
+          id: '1.9.0', 
+          files: [
+            'tofu_1.9.0_linux_amd64.tar.gz',
+            'tofu_1.9.0_windows_amd64.zip'
+          ] 
+        },
+        { 
+          id: '1.6.0', 
+          files: [
+            'tofu_1.6.0_linux_amd64.zip',
+            'tofu_1.6.0_windows_amd64.zip',
+            'tofu_1.6.0_darwin_amd64.zip'
+          ] 
+        },
       ],
     };
 
@@ -40,12 +67,13 @@ describe('opentofu', () => {
       (tl.debug as jest.Mock).mockImplementation(() => {});
       (tl.loc as jest.Mock).mockImplementation((key: string, value: string) => `${key}: ${value}`);
 
-      const version = await getOpenTofuVersion('latest');
+      const result = await getOpenTofuVersion('latest');
 
-      expect(version).toBe('1.10.2');
+      expect(result.version).toBe('1.10.2');
+      expect(result.files).toEqual(mockVersionData.versions[0].files);
       expect(global.fetch).toHaveBeenCalledWith('https://get.opentofu.org/tofu/api.json');
       expect(tr.evaluateVersions).toHaveBeenCalledWith(
-        ['1.10.2', '1.10.1', '1.9.0', '1.8.5'],
+        ['1.10.2', '1.10.1', '1.9.0', '1.6.0'],
         '>1.0.0'
       );
     });
@@ -60,11 +88,12 @@ describe('opentofu', () => {
       (tl.debug as jest.Mock).mockImplementation(() => {});
       (tl.loc as jest.Mock).mockImplementation((key: string, value: string) => `${key}: ${value}`);
 
-      const version = await getOpenTofuVersion('1.9.0');
+      const result = await getOpenTofuVersion('1.9.0');
 
-      expect(version).toBe('1.9.0');
+      expect(result.version).toBe('1.9.0');
+      expect(result.files).toEqual(mockVersionData.versions[2].files);
       expect(tr.evaluateVersions).toHaveBeenCalledWith(
-        ['1.10.2', '1.10.1', '1.9.0', '1.8.5'],
+        ['1.10.2', '1.10.1', '1.9.0', '1.6.0'],
         '1.9.0'
       );
     });
@@ -118,6 +147,11 @@ describe('opentofu', () => {
 
   describe('installOpenTofu', () => {
     const mockVersion = '1.10.2';
+    const mockFiles = [
+      'tofu_1.10.2_linux_amd64.tar.gz',
+      'tofu_1.10.2_linux_amd64.zip',
+      'tofu_1.10.2_windows_amd64.zip'
+    ];
     const mockCachePath = '/path/to/cache';
     const mockDownloadPath = '/path/to/download';
     const mockExtractPath = '/path/to/extract';
@@ -127,13 +161,12 @@ describe('opentofu', () => {
       (tl.loc as jest.Mock).mockImplementation((key: string, value: string) => `${key}: ${value}`);
       (utils.getPlatform as jest.Mock).mockReturnValue('linux');
       (utils.getArch as jest.Mock).mockReturnValue('amd64');
-      (utils.getZipExtension as jest.Mock).mockReturnValue('tar.gz');
     });
 
     it('should return cached tool path if already installed', async () => {
       (tr.findLocalTool as jest.Mock).mockReturnValue(mockCachePath);
 
-      const result = await installOpenTofu(mockVersion);
+      const result = await installOpenTofu(mockVersion, mockFiles);
 
       expect(result).toBe(mockCachePath);
       expect(tr.findLocalTool).toHaveBeenCalledWith('opentofu', mockVersion);
@@ -146,7 +179,7 @@ describe('opentofu', () => {
       (tr.extractTar as jest.Mock).mockResolvedValue(mockExtractPath);
       (tr.cacheDir as jest.Mock).mockResolvedValue(mockCachePath);
 
-      const result = await installOpenTofu(mockVersion);
+      const result = await installOpenTofu(mockVersion, mockFiles);
 
       expect(result).toBe(mockCachePath);
       expect(tr.downloadToolWithRetries).toHaveBeenCalledWith(
@@ -166,12 +199,120 @@ describe('opentofu', () => {
       (tr.extractZip as jest.Mock).mockResolvedValue(mockExtractPath);
       (tr.cacheDir as jest.Mock).mockResolvedValue(mockCachePath);
       (utils.getPlatform as jest.Mock).mockReturnValue('windows');
-      (utils.getZipExtension as jest.Mock).mockReturnValue('zip');
 
-      await installOpenTofu(mockVersion);
+      await installOpenTofu(mockVersion, mockFiles);
 
+      expect(tr.downloadToolWithRetries).toHaveBeenCalledWith(
+        `https://github.com/opentofu/opentofu/releases/download/v${mockVersion}/tofu_${mockVersion}_windows_amd64.zip`,
+        undefined,
+        undefined,
+        undefined,
+        5
+      );
       expect(tr.extractZip).toHaveBeenCalledWith(mockDownloadPath);
       expect(tr.extractTar).not.toHaveBeenCalled();
+    });
+
+    it('should prefer tar.gz over zip for Linux when both available', async () => {
+      (tr.findLocalTool as jest.Mock).mockReturnValue('');
+      (tr.downloadToolWithRetries as jest.Mock).mockResolvedValue(mockDownloadPath);
+      (tr.extractTar as jest.Mock).mockResolvedValue(mockExtractPath);
+      (tr.cacheDir as jest.Mock).mockResolvedValue(mockCachePath);
+      (utils.getPlatform as jest.Mock).mockReturnValue('linux');
+
+      await installOpenTofu(mockVersion, mockFiles);
+
+      // Should prefer .tar.gz even though .zip is also available
+      expect(tr.downloadToolWithRetries).toHaveBeenCalledWith(
+        `https://github.com/opentofu/opentofu/releases/download/v${mockVersion}/tofu_${mockVersion}_linux_amd64.tar.gz`,
+        undefined,
+        undefined,
+        undefined,
+        5
+      );
+      expect(tr.extractTar).toHaveBeenCalledWith(mockDownloadPath);
+    });
+
+    it('should use zip for Linux v1.6.0 when tar.gz is not available', async () => {
+      const v160Files = [
+        'tofu_1.6.0_linux_amd64.zip',
+        'tofu_1.6.0_windows_amd64.zip',
+        'tofu_1.6.0_darwin_amd64.zip'
+      ];
+      (tr.findLocalTool as jest.Mock).mockReturnValue('');
+      (tr.downloadToolWithRetries as jest.Mock).mockResolvedValue(mockDownloadPath);
+      (tr.extractZip as jest.Mock).mockResolvedValue(mockExtractPath);
+      (tr.cacheDir as jest.Mock).mockResolvedValue(mockCachePath);
+      (utils.getPlatform as jest.Mock).mockReturnValue('linux');
+
+      await installOpenTofu('1.6.0', v160Files);
+
+      // Should fall back to .zip when .tar.gz is not available
+      expect(tr.downloadToolWithRetries).toHaveBeenCalledWith(
+        'https://github.com/opentofu/opentofu/releases/download/v1.6.0/tofu_1.6.0_linux_amd64.zip',
+        undefined,
+        undefined,
+        undefined,
+        5
+      );
+      expect(tr.extractZip).toHaveBeenCalledWith(mockDownloadPath);
+      expect(tr.extractTar).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when no matching file is found for platform', async () => {
+      const incompleteFiles = ['tofu_1.10.2_windows_amd64.zip']; // Missing linux files
+      (tr.findLocalTool as jest.Mock).mockReturnValue('');
+      (tl.loc as jest.Mock).mockImplementation((key: string) => key);
+      (utils.getPlatform as jest.Mock).mockReturnValue('linux');
+      (utils.getArch as jest.Mock).mockReturnValue('amd64');
+
+      await expect(installOpenTofu(mockVersion, incompleteFiles)).rejects.toThrow();
+    });
+
+    it('should handle darwin (macOS) platform correctly', async () => {
+      const macFiles = [
+        'tofu_1.10.2_darwin_amd64.tar.gz',
+        'tofu_1.10.2_darwin_amd64.zip'
+      ];
+      (tr.findLocalTool as jest.Mock).mockReturnValue('');
+      (tr.downloadToolWithRetries as jest.Mock).mockResolvedValue(mockDownloadPath);
+      (tr.extractTar as jest.Mock).mockResolvedValue(mockExtractPath);
+      (tr.cacheDir as jest.Mock).mockResolvedValue(mockCachePath);
+      (utils.getPlatform as jest.Mock).mockReturnValue('darwin');
+
+      await installOpenTofu(mockVersion, macFiles);
+
+      expect(tr.downloadToolWithRetries).toHaveBeenCalledWith(
+        `https://github.com/opentofu/opentofu/releases/download/v${mockVersion}/tofu_${mockVersion}_darwin_amd64.tar.gz`,
+        undefined,
+        undefined,
+        undefined,
+        5
+      );
+      expect(tr.extractTar).toHaveBeenCalledWith(mockDownloadPath);
+    });
+
+    it('should handle arm64 architecture correctly', async () => {
+      const arm64Files = [
+        'tofu_1.10.2_linux_arm64.tar.gz',
+        'tofu_1.10.2_linux_arm64.zip'
+      ];
+      (tr.findLocalTool as jest.Mock).mockReturnValue('');
+      (tr.downloadToolWithRetries as jest.Mock).mockResolvedValue(mockDownloadPath);
+      (tr.extractTar as jest.Mock).mockResolvedValue(mockExtractPath);
+      (tr.cacheDir as jest.Mock).mockResolvedValue(mockCachePath);
+      (utils.getPlatform as jest.Mock).mockReturnValue('linux');
+      (utils.getArch as jest.Mock).mockReturnValue('arm64');
+
+      await installOpenTofu(mockVersion, arm64Files);
+
+      expect(tr.downloadToolWithRetries).toHaveBeenCalledWith(
+        `https://github.com/opentofu/opentofu/releases/download/v${mockVersion}/tofu_${mockVersion}_linux_arm64.tar.gz`,
+        undefined,
+        undefined,
+        undefined,
+        5
+      );
     });
   });
 

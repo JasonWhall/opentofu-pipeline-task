@@ -1,5 +1,5 @@
 import * as tl from 'azure-pipelines-task-lib/task';
-import { getPlatform, getArch, getZipExtension, getFileExtension } from '../utils';
+import { getPlatform, getArch, getFileExtension } from '../utils';
 
 // Mock the azure-pipelines-task-lib module
 jest.mock('azure-pipelines-task-lib/task');
@@ -65,29 +65,6 @@ describe('utils', () => {
     it('should throw error for unsupported architecture', () => {
       mockedArch.mockReturnValue('mips' as any);
       expect(() => getArch()).toThrow();
-    });
-  });
-
-  describe('getZipExtension', () => {
-    const mockedGetPlatform = tl.getPlatform as jest.MockedFunction<typeof tl.getPlatform>;
-
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
-
-    it('should return "zip" for Windows platform', () => {
-      mockedGetPlatform.mockReturnValue(tl.Platform.Windows);
-      expect(getZipExtension()).toBe('zip');
-    });
-
-    it('should return "tar.gz" for Linux platform', () => {
-      mockedGetPlatform.mockReturnValue(tl.Platform.Linux);
-      expect(getZipExtension()).toBe('tar.gz');
-    });
-
-    it('should return "tar.gz" for MacOS platform', () => {
-      mockedGetPlatform.mockReturnValue(tl.Platform.MacOS);
-      expect(getZipExtension()).toBe('tar.gz');
     });
   });
 

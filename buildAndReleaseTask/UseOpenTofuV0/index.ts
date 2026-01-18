@@ -7,8 +7,8 @@ async function run() {
     const versionInput = tl.getInput("version") || "latest";
 
     try {
-        const version = await getOpenTofuVersion(versionInput);
-        const toolPath = await installOpenTofu(version);
+        const versionInfo = await getOpenTofuVersion(versionInput);
+        const toolPath = await installOpenTofu(versionInfo.version, versionInfo.files);
         await verifyInstall(toolPath);
     }
     catch (error) {

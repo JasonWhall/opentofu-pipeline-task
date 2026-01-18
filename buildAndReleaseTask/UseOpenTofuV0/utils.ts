@@ -41,11 +41,6 @@ export const getArch = (): string => {
     }
 }
 
-/**
- * 
- * @returns The appropriate zip file extension for the current platform.
- */
-export const getZipExtension = (): string => getPlatform().startsWith("win") ? "zip" : "tar.gz";
 
 /** 
  * 
