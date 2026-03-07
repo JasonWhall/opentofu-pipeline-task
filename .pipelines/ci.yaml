@@ -135,8 +135,7 @@ stages:
             name: publishDev
             displayName: Publish Private Extension
             inputs:
-              connectTo: VsTeam
-              connectedServiceName: MarketplacePublishing
+              connectedServiceNameAzureRM: MarketplacePublisher
               fileType: vsix
               vsixFile: $(Pipeline.Workspace)/vsix/opentofu-pipeline-task-private.vsix
               noWaitValidation: true
@@ -144,8 +143,7 @@ stages:
           - task: IsAzureDevOpsExtensionValid@5
             displayName: Validate
             inputs:
-              connectTo: VsTeam
-              connectedServiceName: MarketplacePublishing
+              connectedServiceNameAzureRM: MarketplacePublisher
               method: vsix
               vsixFile: $(publishDev.Extension.OutputPath)
 
@@ -179,8 +177,7 @@ stages:
             name: publishProd
             displayName: Publish the public extension
             inputs:
-              connectTo: VsTeam
-              connectedServiceName: MarketplacePublishing
+              connectedServiceNameAzureRM: MarketplacePublisher
               fileType: vsix
               vsixFile: $(Pipeline.Workspace)/vsix/opentofu-pipeline-task-public.vsix
               noWaitValidation: true
@@ -188,8 +185,7 @@ stages:
           - task: IsAzureDevOpsExtensionValid@5
             displayName: Validate
             inputs:
-              connectTo: VsTeam
-              connectedServiceName: MarketplacePublishing
+              connectedServiceNameAzureRM: MarketplacePublisher
               method: vsix
               vsixFile: $(publishProd.Extension.OutputPath)
 
