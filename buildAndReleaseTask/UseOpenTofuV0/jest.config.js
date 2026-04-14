@@ -2,6 +2,13 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  transform: {
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        types: ['node', 'jest'],
+      },
+    }],
+  },
   roots: ['<rootDir>'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
   collectCoverageFrom: [
