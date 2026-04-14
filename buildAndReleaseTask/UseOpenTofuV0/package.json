@@ -24,7 +24,8 @@
   "homepage": "https://github.com/JasonWhall/opentofu-pipeline-task#readme",
   "dependencies": {
     "azure-pipelines-task-lib": "^5.2.1",
-    "azure-pipelines-tool-lib": "^2.0.10"
+    "azure-pipelines-tool-lib": "^2.0.10",
+    "typed-rest-client": "^1.8.11"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

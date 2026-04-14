@@ -5,6 +5,14 @@ jest.mock('azure-pipelines-tool-lib/tool');
 jest.mock('fs');
 jest.mock('../utils');
 
+// Mock typed-rest-client/RestClient with a controllable get function
+const mockGet = jest.fn();
+jest.mock('typed-rest-client/RestClient', () => ({
+  RestClient: jest.fn().mockImplementation(() => ({
+    get: mockGet,
+  })),
+}));
+
 import * as tl from 'azure-pipelines-task-lib/task';
 import * as tr from 'azure-pipelines-tool-lib/tool';
 import * as path from 'path';
@@ -12,8 +20,12 @@ import * as fs from 'fs';
 import { getOpenTofuVersion, installOpenTofu, verifyInstall } from '../opentofu';
 import * as utils from '../utils';
 
-// Mock global fetch
-global.fetch = jest.fn();
+// Helper to create a mock RestClient response
+const createMockRestResponse = <T>(statusCode: number, result: T | null) => ({
+  statusCode,
+  result,
+  headers: {},
+});
 
 describe('opentofu', () => {
   beforeEach(() => {
@@ -58,10 +70,7 @@ describe('opentofu', () => {
     };
 
     it('should fetch and return the latest version', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockVersionData,
-      });
+      mockGet.mockResolvedValue(createMockRestResponse(200, mockVersionData));
 
       (tr.evaluateVersions as jest.Mock).mockReturnValue('1.10.2');
       (tl.debug as jest.Mock).mockImplementation(() => {});
@@ -71,7 +80,7 @@ describe('opentofu', () => {
 
       expect(result.version).toBe('1.10.2');
       expect(result.files).toEqual(mockVersionData.versions[0].files);
-      expect(global.fetch).toHaveBeenCalledWith('https://get.opentofu.org/tofu/api.json');
+      expect(mockGet).toHaveBeenCalledWith('https://get.opentofu.org/tofu/api.json');
       expect(tr.evaluateVersions).toHaveBeenCalledWith(
         ['1.10.2', '1.10.1', '1.9.0', '1.6.0'],
         '>1.0.0'
@@ -79,10 +88,7 @@ describe('opentofu', () => {
     });
 
     it('should fetch and return a specific version', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockVersionData,
-      });
+      mockGet.mockResolvedValue(createMockRestResponse(200, mockVersionData));
 
       (tr.evaluateVersions as jest.Mock).mockReturnValue('1.9.0');
       (tl.debug as jest.Mock).mockImplementation(() => {});
@@ -99,10 +105,7 @@ describe('opentofu', () => {
     });
 
     it('should throw error when version is not found', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockVersionData,
-      });
+      mockGet.mockResolvedValue(createMockRestResponse(200, mockVersionData));
 
       (tr.evaluateVersions as jest.Mock).mockReturnValue(null);
       (tl.debug as jest.Mock).mockImplementation(() => {});
@@ -111,37 +114,57 @@ describe('opentofu', () => {
       await expect(getOpenTofuVersion('99.99.99')).rejects.toThrow();
     });
 
-    it('should throw error when fetch fails', async () => {
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+    it('should throw error when HTTP request fails', async () => {
+      mockGet.mockRejectedValue(new Error('Network error'));
       (tl.debug as jest.Mock).mockImplementation(() => {});
-      (tl.loc as jest.Mock).mockImplementation((key: string) => key);
+      (tl.loc as jest.Mock).mockImplementation(
+        (key: string, ...args: string[]) => `${key}: ${args.join(', ')}`
+      );
 
-      await expect(getOpenTofuVersion('latest')).rejects.toThrow('Failed to fetch OpenTofu version API');
+      await expect(getOpenTofuVersion('latest')).rejects.toThrow('Error_FetchFailed');
     });
 
-    it('should throw error when API returns non-ok status', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-      });
+    it('should throw error when API returns non-ok status (RestClient throws)', async () => {
+      const httpError = new Error('Failed request: (500)');
+      (httpError as any).statusCode = 500;
+      mockGet.mockRejectedValue(httpError);
       (tl.debug as jest.Mock).mockImplementation(() => {});
-      (tl.loc as jest.Mock).mockImplementation((key: string) => key);
+      (tl.loc as jest.Mock).mockImplementation(
+        (key: string, ...args: string[]) => `${key}: ${args.join(', ')}`
+      );
 
-      await expect(getOpenTofuVersion('latest')).rejects.toThrow('OpenTofu version API returned status 404');
+      await expect(getOpenTofuVersion('latest')).rejects.toThrow('Error_FetchFailed');
     });
 
-    it('should throw error when JSON parsing fails', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => {
-          throw new Error('Invalid JSON');
-        },
-      });
+    it('should throw error when API returns null result (e.g., 404 Not Found)', async () => {
+      mockGet.mockResolvedValue(createMockRestResponse(404, null));
       (tl.debug as jest.Mock).mockImplementation(() => {});
-      (tl.loc as jest.Mock).mockImplementation((key: string) => key);
+      (tl.loc as jest.Mock).mockImplementation(
+        (key: string, ...args: string[]) => `${key}: ${args.join(', ')}`
+      );
 
-      await expect(getOpenTofuVersion('latest')).rejects.toThrow('Failed to parse OpenTofu version API response');
+      await expect(getOpenTofuVersion('latest')).rejects.toThrow('Error_InvalidApiResponse');
+    });
+
+    it('should throw error when API response has no versions', async () => {
+      mockGet.mockResolvedValue(createMockRestResponse(200, {} as any));
+      (tl.debug as jest.Mock).mockImplementation(() => {});
+      (tl.loc as jest.Mock).mockImplementation(
+        (key: string, ...args: string[]) => `${key}: ${args.join(', ')}`
+      );
+
+      await expect(getOpenTofuVersion('latest')).rejects.toThrow('Error_InvalidApiResponse');
+    });
+
+    it('should use tl.loc for debug message when fetching version info', async () => {
+      mockGet.mockResolvedValue(createMockRestResponse(200, mockVersionData));
+      (tr.evaluateVersions as jest.Mock).mockReturnValue('1.10.2');
+      (tl.debug as jest.Mock).mockImplementation(() => {});
+      (tl.loc as jest.Mock).mockImplementation((key: string, value: string) => `${key}: ${value}`);
+
+      await getOpenTofuVersion('latest');
+
+      expect(tl.loc).toHaveBeenCalledWith('Debug_FetchingVersionInfo', 'https://get.opentofu.org/tofu/api.json');
     });
   });
 

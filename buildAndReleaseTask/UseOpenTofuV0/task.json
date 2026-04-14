@@ -34,7 +34,10 @@
         "Error_ToolNotFound": "The OpenTofu Cli tool was not found at the expected path: %s. Please check the installation.",
         "Error_VersionNotFound": "The requested version of OpenTofu Cli: %s was not found. Please check the version number.",
         "Error_NoMatchingFile": "No matching archive file found for platform: %s and architecture: %s. The version may not be available for this platform.",
+        "Error_FetchFailed": "Failed to fetch OpenTofu version API at %s: %s",
+        "Error_InvalidApiResponse": "OpenTofu version API at %s returned an invalid or empty response.",
         "Debug_VersionRequested": "Version requested: %s",
-        "Debug_InstallingVersion": "Installing OpenTofu Cli version: %s"
+        "Debug_InstallingVersion": "Installing OpenTofu Cli version: %s",
+        "Debug_FetchingVersionInfo": "Fetching OpenTofu version info from %s"
     }
 }
