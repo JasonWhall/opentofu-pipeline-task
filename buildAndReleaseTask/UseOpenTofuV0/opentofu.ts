@@ -3,15 +3,30 @@ import * as tr from 'azure-pipelines-tool-lib/tool';
 import * as utils from "./utils";
 import * as path from 'path';
 import * as fs from 'fs';
+import { RestClient, IRestResponse } from 'typed-rest-client/RestClient';
+import { IRequestOptions } from 'typed-rest-client/Interfaces';
 
 interface VersionInfo {
     id: string;
     files: string[];
 }
 
+interface VersionApiResponse {
+    versions: VersionInfo[];
+}
+
 interface ResolvedVersion {
     version: string;
     files: string[];
+}
+
+function createRestClient(): RestClient {
+    const requestOptions: IRequestOptions = {
+        allowRetries: true,
+        maxRetries: 3
+    };
+
+    return new RestClient('opentofu-pipeline-task', undefined, [], requestOptions);
 }
 
 /**
@@ -120,28 +135,21 @@ const getMatchingVersion = (versions: string[], requestedVersion: string): strin
 }
 
 const getVersionInfo = async (url: string): Promise<VersionInfo[]> => {
-    let response;
+    tl.debug(tl.loc("Debug_FetchingVersionInfo", url));
+
+    const client = createRestClient();
+    let response: IRestResponse<VersionApiResponse>;
     try {
-        response = await fetch(url);
+        response = await client.get<VersionApiResponse>(url);
     } catch (error) {
-        const errorMessage = `Failed to fetch OpenTofu version API: ${error instanceof Error ? error.message : String(error)}`;
-        throw new Error(errorMessage);
+        throw new Error(tl.loc("Error_FetchFailed", url, error instanceof Error ? error.message : String(error)));
     }
 
-    if (!response.ok) {
-        const errorMessage = `OpenTofu version API returned status ${response.status}: ${response.statusText}`;
-        throw new Error(errorMessage);
+    if (!response.result?.versions) {
+        throw new Error(tl.loc("Error_InvalidApiResponse", url));
     }
 
-    let data;
-    try {
-        data = await response.json();
-    } catch (error) { 
-        const errorMessage = `Failed to parse OpenTofu version API response: ${error instanceof Error ? error.message : String(error)}`;
-        throw new Error(errorMessage);
-    }
-
-    return data.versions;
+    return response.result.versions;
 }
 
 const getDownloadUrl = (version: string, archiveFileName: string) : string => 
