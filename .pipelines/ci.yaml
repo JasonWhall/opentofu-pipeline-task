@@ -78,7 +78,7 @@ stages:
         extensionVisibility: private
 
     - task: PackageAzureDevOpsExtension@5
-      displayName: Package Private'
+      displayName: Package Private
       inputs:
         rootFolder: $(Build.SourcesDirectory)
         outputPath: $(Build.ArtifactStagingDirectory)\opentofu-pipeline-task-private.vsix
@@ -120,10 +120,10 @@ stages:
             artifact: vsix
             patterns: "**/*-private.vsix"
 
-          - task: NodeTool@0
-            displayName: Install Node
+          - task: UseNode@1
+            displayName: Install node
             inputs:
-              versionSpec: $(nodeVersion)
+              version: $(nodeVersion)
 
           - task: TfxInstaller@5
             displayName: Install Tfx
@@ -162,10 +162,10 @@ stages:
             artifact: vsix
             patterns: "**/*-public.vsix"
 
-          - task: NodeTool@0
+          - task: UseNode@1
+            displayName: Install node
             inputs:
-              versionSpec: $(nodeVersion)
-            displayName: Install Node
+              version: $(nodeVersion)
 
           - task: TfxInstaller@5
             displayName: Install Tfx
