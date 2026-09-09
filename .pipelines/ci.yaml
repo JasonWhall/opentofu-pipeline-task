@@ -146,6 +146,7 @@ stages:
               connectedServiceNameAzureRM: MarketplacePublisher
               method: vsix
               vsixFile: $(publishDev.Extension.OutputPath)
+              maxRetries: 20
 
 - stage: PublishProd
   displayName: Publish Public
@@ -188,6 +189,7 @@ stages:
               connectedServiceNameAzureRM: MarketplacePublisher
               method: vsix
               vsixFile: $(publishProd.Extension.OutputPath)
+              maxRetries: 20
 
           - task: GitHubRelease@1
             displayName: Publish Release
