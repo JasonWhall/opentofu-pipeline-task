@@ -8,7 +8,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
-    },
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JasonWhall/opentofu-pipeline-task.git"
@@ -33,5 +33,9 @@
     "jest": "^30.2.0",
     "ts-jest": "^29.4.5",
     "typescript": "^6.0.0"
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": true,
+    "unrs-resolver@1.12.2": true
   }
 }

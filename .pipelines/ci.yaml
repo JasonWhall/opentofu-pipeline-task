@@ -37,7 +37,7 @@ stages:
         version: $(nodeVersion)
 
     - script: |
-        npm install
+        npm ci
       displayName: Install dependencies
       workingDirectory: $(Build.SourcesDirectory)/buildAndReleaseTask/UseOpenTofuV0
 
